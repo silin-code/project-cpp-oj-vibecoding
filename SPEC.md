@@ -333,30 +333,19 @@ cpp-oj-vibecoding/
         └── api_test.cc          -- API 集成测试
 ```
 
-### TODO 清单 (按实现顺序)
+### TODO 清单
 
-| # | 任务 | 预估 |
-|---|------|------|
-| 1 | 项目骨架: CMakeLists.txt + config.json + init.sql + third_party 头文件 | 小 |
-| 2 | utils 层: logger.cc/h, config.cc/h (JSON 解析) | 小 |
-| 3 | db 层: connection_pool.cc/h + init.sql 建表 | 小 |
-| 4 | model 层: problem.h / test_case.h / user.h 结构体 | 小 |
-| 5 | service 层: auth_service (注册/登录/password hash/Session 管理/限流) | 中 |
-| 6 | service 层: problem_service (题目 CRUD + 通过率) | 中 |
-| 7 | service 层: executor_service (判题队列 + 沙箱调用 + 结果比对) | 大 |
-| 8 | handler 层: auth_handler (注册/登录/登出/me API) | 小 |
-| 9 | handler 层: problem_handler (题目 CRUD API) | 小 |
-| 10 | handler 层: submit_handler (提交 + 轮询 API) | 中 |
-| 11 | handler 层: admin_handler (测试用例管理 API) | 小 |
-| 12 | server 层: router.h + server.cc + main.cc (路由注册 + 启动) | 中 |
-| 13 | 前端: api.js + auth.js + style.css + HTML 骨架 | 中 |
-| 14 | 前端: login.html + register.html + 对应 JS | 小 |
-| 15 | 前端: index.html + problem.js (题目列表) | 小 |
-| 16 | 前端: problem.html + problem_detail.js + submit.js (CodeMirror + 提交轮询) | 中 |
-| 17 | 前端: admin.html + admin.js (管理后台) | 中 |
-| 18 | 单元测试: problem_test.cc + executor_test.cc | 中 |
-| 19 | 集成测试: api_test.cc (端到端流程) | 中 |
-| 20 | 部署: systemd service + start.sh | 小 |
+分 7 个阶段、共 22 个大任务，**详细子任务和进度详见 [`TASK.md`](TASK.md)**。
+
+| 阶段 | 内容 | 任务数 |
+|------|------|--------|
+| 一 | 环境准备（依赖安装 + 数据库初始化） | 5 |
+| 二 | 项目骨架（CMakeLists.txt + config + third_party） | 4 |
+| 三 | 基础设施（utils + db + model） | 6 |
+| 四 | 后端 Service 层（auth / problem / executor） | 3 |
+| 五 | 后端 Handler + Server 层 | 5 |
+| 六 | 前端（5 页面 + CSS + JS） | 9 |
+| 七 | 测试 & 部署 | 5 |
 
 ---
 
