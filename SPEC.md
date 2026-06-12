@@ -1,6 +1,6 @@
 # OJ 系统规格说明书 (SPEC)
 
-> 最后更新: 2026-06-12
+> 最后更新: 2026-06-12（重构项目结构，采用 handler/service/model 分层）
 
 ---
 
@@ -11,7 +11,7 @@
 | 项目定位 | 仿 LeetCode 的个人在线判题系统，用于学习/面试准备 |
 | 目标用户 | 自己 + 少量朋友（1–20 人同时在线） |
 | 成功标准 | 用户可注册登录、浏览题目、提交 C++ 代码、实时获得判题结果；管理员可增删题目及测试用例 |
-| 部署方式 | 单机部署于云端服务器（使用 Docker 容器化） |
+| 部署方式 | 单机部署于云端服务器（systemd 管理进程） |
 
 ---
 
@@ -46,7 +46,7 @@
 | 安全 | 进程级沙箱隔离（seccomp + unshare + rlimit），限制 CPU/内存/时间/系统调用，禁止网络、禁止读文件系统 |
 | 存储 | 题目和测试用例存 MySQL，Session 存本地磁盘文件，提交记录存 MySQL |
 | 限流 | 同一用户 10 秒内最多提交 1 次；单次提交代码最大 64KB |
-| 可维护性 | Docker 容器化一键部署，包含 MySQL + 后端 + 前端静态文件 |
+| 可维护性 | systemd 管理进程，编译后直接运行；MySQL 依赖系统安装 |
 
 ---
 
@@ -55,27 +55,39 @@
 ### 3.1 总体架构图
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                   Browser (原生 HTML+CSS+JS)          │
-│            CodeMirror 6 (CDN) 代码编辑器               │
-│                  fetch() REST 调用                     │
-└──────────────────────┬──────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                   Browser (原生 HTML+CSS+JS)               │
+│            CodeMirror 6 (CDN) 代码编辑器                    │
+│                  fetch() REST 调用                          │
+└──────────────────────┬───────────────────────────────────┘
                        │ HTTP (REST JSON)
                        ▼
-┌─────────────────────────────────────────────────────┐
-│              C++ Backend (cpp-httplib)               │
-│                                                      │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────────┐  │
-│  │ Auth     │  │ Problem  │  │ Submission        │  │
-│  │ Service  │  │ Service  │  │ Service           │  │
-│  │          │  │          │  │ ┌───────────────┐ │  │
-│  │ Session  │  │ MySQL    │  │ │ Judge Worker  │ │  │
-│  │ File     │  │ CRUD     │  │ │ (沙箱进程)    │ │  │
-│  └──────────┘  └──────────┘  │ │ fork/seccomp  │ │  │
-│                               │ │ unshare/rlimit│ │  │
-│                               │ └───────────────┘ │  │
-│                               └───────────────────┘  │
-└──────────────────────┬──────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│                  C++ Backend (cpp-httplib)                │
+│                                                          │
+│  ┌──────────┐  ┌────────────────┐  ┌─────────────────┐  │
+│  │  Router  │→ │    Handler     │→ │    Service      │  │
+│  │ (路由)   │  │ (请求处理)     │  │ (业务逻辑)      │  │
+│  │          │  │ auth_handler   │  │ auth_service    │  │
+│  │          │  │ problem_handler │  │ problem_service │  │
+│  │          │  │ submit_handler │  │ executor_service│  │
+│  │          │  │ admin_handler  │  │                 │  │
+│  └──────────┘  └────────────────┘  └───────┬─────────┘  │
+│                                            │            │
+│                      ┌─────────────────────┴──────┐     │
+│                      │         Model               │     │
+│                      │  problem / test_case / user  │     │
+│                      └─────────────────────┬──────┘     │
+│                                            │            │
+│  ┌─────────────────────────────────────────┴────────┐  │
+│  │     DB (Connection Pool)                         │  │
+│  └─────────────────────────────────────────┬────────┘  │
+│                                            │            │
+│  ┌─────────────────────────────────────────┴────────┐  │
+│  │      Executor (沙箱判题)                          │  │
+│  │  fork / seccomp / unshare / rlimit / chroot       │  │
+│  └──────────────────────────────────────────────────┘  │
+└──────────────────────┬──────────────────────────────────┘
                        │
           ┌────────────┴────────────┐
           │     MySQL (持久化)       │
@@ -217,15 +229,15 @@ CREATE TABLE submissions (
 
 ## 6. 前端页面结构
 
-| 页面 | 路由(前端) | 说明 |
-|------|-----------|------|
-| 登录 | `/login` | 登录表单 |
-| 注册 | `/register` | 注册表单 |
-| 题目列表 | `/` 或 `/problems` | 题目表格 + 通过率 |
-| 题目详情 | `/problems/{id}` | 题目描述 + 示例 + CodeMirror 编辑器 + 提交按钮 |
-| 提交历史 | `/submissions?problem_id=X` | 某题的历史提交列表 |
-| 提交详情 | `/submissions/{id}` | 判题状态、代码回显、错误详情 |
-| 管理后台 | `/admin/problems` | 题目管理（列表 + 新增/编辑表单 + 测试用例管理）|
+| 页面 | 文件 | 路由(前端) | 说明 |
+|------|------|-----------|------|
+| 登录 | `login.html` | `/login` | 登录表单 |
+| 注册 | `register.html` | `/register` | 注册表单 |
+| 题目列表 | `index.html` | `/` | 题目表格 + 通过率 + 提交历史入口 |
+| 题目详情 | `problem.html` | `/problem?id=X` | 题目描述 + 示例 + CodeMirror 编辑器 + 提交按钮 + 结果展示 |
+| 管理后台 | `admin.html` | `/admin` | 题目 CRUD + 测试用例管理 |
+
+前端为多页应用（MPA），每个页面独立 HTML，通过 JS 调用 REST API。
 
 ---
 
@@ -260,71 +272,91 @@ CREATE TABLE submissions (
 ## 9. 项目结构与 TODO 清单
 
 ```
-oj-system/
-├── docker-compose.yml
-├── Dockerfile.backend
-├── Dockerfile.frontend
-├── backend/
-│   ├── CMakeLists.txt
-│   ├── src/
-│   │   ├── main.cpp            -- 入口, 路由注册
-│   │   ├── server.cpp/h        -- httplib server 封装
-│   │   ├── auth.cpp/h          -- 注册/登录/Session 管理
-│   │   ├── problem.cpp/h       -- 题目 CRUD
-│   │   ├── testcase.cpp/h      -- 测试用例 CRUD
-│   │   ├── submission.cpp/h    -- 提交处理 + 判队队列
-│   │   ├── judge.cpp/h         -- 沙箱判题核心 (fork/seccomp/rlimit)
-│   │   ├── database.cpp/h      -- MySQL 连接池封装
-│   │   ├── middleware.cpp/h    -- 认证/限流/日志中间件
-│   │   └── utils.cpp/h         -- 工具函数
-│   └── tests/
-├── frontend/
-│   ├── index.html
-│   ├── login.html
-│   ├── register.html
-│   ├── problem-list.html
-│   ├── problem-detail.html
-│   ├── submissions.html
-│   ├── submission-detail.html
-│   ├── admin/
-│   │   ├── problems.html
-│   │   └── problem-form.html
+cpp-oj-vibecoding/
+├── CMakeLists.txt               -- CMake 构建配置
+├── README.md                    -- 项目说明
+├── SPEC.md                      -- 本规格文档
+├── .gitignore
+├── config/
+│   └── config.json              -- 配置文件（端口、数据库、Session 路径等）
+├── database/
+│   └── init.sql                 -- 数据库建表 + root 账号初始化 SQL
+├── third_party/
+│   ├── httplib.h                -- cpp-httplib (header-only)
+│   └── json.hpp                 -- nlohmann-json (header-only)
+├── src/
+│   ├── main.cc                  -- 程序入口，启动 server + 注册路由
+│   ├── server/
+│   │   ├── server.cc            -- HTTP server 封装
+│   │   └── router.h             -- 路由声明（Route 结构体 + 注册函数）
+│   ├── handler/
+│   │   ├── auth_handler.cc      -- 注册/登录/登出/me API
+│   │   ├── problem_handler.cc   -- 题目 CRUD API
+│   │   ├── submit_handler.cc    -- 代码提交 + 查询结果 API
+│   │   └── admin_handler.cc     -- 管理接口（测试用例管理）
+│   ├── service/
+│   │   ├── auth_service.cc      -- 密码哈希 / Session 管理 / 限流
+│   │   ├── problem_service.cc   -- 题目业务逻辑 + 通过率计算
+│   │   └── executor_service.cc  -- 判题队列 + 沙箱调用 + 结果比对
+│   ├── model/
+│   │   ├── problem.h            -- Problem 结构体
+│   │   ├── test_case.h          -- TestCase 结构体
+│   │   └── user.h               -- User 结构体
+│   ├── db/
+│   │   ├── connection_pool.cc   -- MySQL 连接池
+│   │   └── connection_pool.h    -- 连接池头文件
+│   └── utils/
+│       ├── logger.cc            -- 日志工具
+│       ├── logger.h
+│       ├── config.cc            -- 配置加载（JSON 解析）
+│       └── config.h
+├── public/
+│   ├── index.html               -- 题目列表页
+│   ├── login.html               -- 登录页
+│   ├── register.html            -- 注册页
+│   ├── problem.html             -- 题目详情页（编辑器 + 提交 + 结果）
+│   ├── admin.html               -- 管理后台页
 │   ├── css/
-│   │   └── style.css
+│   │   └── style.css            -- 全局样式
 │   └── js/
-│       ├── api.js              -- fetch 封装 + 认证
-│       ├── router.js           -- 简单 hash 路由
-│       ├── login.js
-│       ├── register.js
-│       ├── problem-list.js
-│       ├── problem-detail.js
-│       ├── submissions.js
-│       ├── submission-detail.js
-│       └── admin-problems.js
-└── spec/
-    └── SPEC.md                 -- 本文件
+│       ├── api.js               -- fetch 封装 + Cookie 自动携带
+│       ├── auth.js              -- 登录状态管理（/me 检查）
+│       ├── problem.js           -- 题目列表渲染逻辑
+│       ├── problem_detail.js    -- 题目详情 + CodeMirror 集成
+│       ├── submit.js            -- 提交 + 轮询结果逻辑
+│       └── admin.js             -- 管理后台 CRUD 逻辑
+└── tests/
+    ├── unit/
+    │   ├── problem_test.cc      -- 题目服务单元测试
+    │   └── executor_test.cc     -- 判题沙箱单元测试
+    └── integration/
+        └── api_test.cc          -- API 集成测试
 ```
 
 ### TODO 清单 (按实现顺序)
 
 | # | 任务 | 预估 |
 |---|------|------|
-| 1 | 搭建项目骨架: CMakeLists.txt, Dockerfile, docker-compose.yml | 小 |
-| 2 | 实现 database.cpp: MySQL 连接池 + 建表 SQL | 小 |
-| 3 | 实现 auth.cpp: 注册/登录/密码 hash/Session 文件管理 | 中 |
-| 4 | 实现 middleware.cpp: Cookie 解析 + 身份校验 + 限流 | 中 |
-| 5 | 实现 problem.cpp: 题目 CRUD REST 接口 | 中 |
-| 6 | 实现 testcase.cpp: 测试用例 CRUD REST 接口 | 中 |
-| 7 | 实现 judge.cpp: 沙箱核心 (fork/seccomp/unshare/rlimit/编译/运行/比对) | 大 |
-| 8 | 实现 submission.cpp: 提交接口 + 任务队列 + Worker + 轮询接口 | 大 |
-| 9 | 前端: 通用框架 (router.js, api.js, style.css, 布局) | 中 |
-| 10 | 前端: 登录/注册页面 | 小 |
-| 11 | 前端: 题目列表页 | 小 |
-| 12 | 前端: 题目详情页 (CodeMirror 集成) | 中 |
-| 13 | 前端: 提交历史 & 提交详情页 | 中 |
-| 14 | 前端: 管理后台 (题目列表 + 表单 + 测试用例管理) | 大 |
-| 15 | 集成测试 & 端到端验证 | 中 |
-| 16 | Docker 容器化 + 部署脚本 | 小 |
+| 1 | 项目骨架: CMakeLists.txt + config.json + init.sql + third_party 头文件 | 小 |
+| 2 | utils 层: logger.cc/h, config.cc/h (JSON 解析) | 小 |
+| 3 | db 层: connection_pool.cc/h + init.sql 建表 | 小 |
+| 4 | model 层: problem.h / test_case.h / user.h 结构体 | 小 |
+| 5 | service 层: auth_service (注册/登录/password hash/Session 管理/限流) | 中 |
+| 6 | service 层: problem_service (题目 CRUD + 通过率) | 中 |
+| 7 | service 层: executor_service (判题队列 + 沙箱调用 + 结果比对) | 大 |
+| 8 | handler 层: auth_handler (注册/登录/登出/me API) | 小 |
+| 9 | handler 层: problem_handler (题目 CRUD API) | 小 |
+| 10 | handler 层: submit_handler (提交 + 轮询 API) | 中 |
+| 11 | handler 层: admin_handler (测试用例管理 API) | 小 |
+| 12 | server 层: router.h + server.cc + main.cc (路由注册 + 启动) | 中 |
+| 13 | 前端: api.js + auth.js + style.css + HTML 骨架 | 中 |
+| 14 | 前端: login.html + register.html + 对应 JS | 小 |
+| 15 | 前端: index.html + problem.js (题目列表) | 小 |
+| 16 | 前端: problem.html + problem_detail.js + submit.js (CodeMirror + 提交轮询) | 中 |
+| 17 | 前端: admin.html + admin.js (管理后台) | 中 |
+| 18 | 单元测试: problem_test.cc + executor_test.cc | 中 |
+| 19 | 集成测试: api_test.cc (端到端流程) | 中 |
+| 20 | 部署: systemd service + start.sh | 小 |
 
 ---
 
@@ -346,5 +378,5 @@ oj-system/
 | A12 | CE 时显示编译错误信息 |
 | A13 | 同一用户 10s 内重复提交返回 429 |
 | A14 | 代码超过 64KB 返回 413 |
-| A15 | Docker Compose 一键启动后系统可正常访问 |
+| A15 | 执行 start.sh 后系统可正常访问 |
 | A16 | Session 文件自动清理机制正常运作 |
