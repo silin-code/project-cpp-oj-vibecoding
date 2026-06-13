@@ -1,0 +1,32 @@
+{
+    "server": {
+        "port": 8080,
+        "static_dir": "public"
+    },
+    "database": {
+        "host": "localhost",
+        "port": 3306,
+        "user": "oj_user",
+        "password": "your_password_here",
+        "dbname": "oj_system",
+        "pool_size": 4
+    },
+    "session": {
+        "dir": "/var/oj/sessions",
+        "max_files": 10000,
+        "cleanup_interval_min": 30
+    },
+    "judge": {
+        "time_limit_default": 2,
+        "memory_limit_default": 256,
+        "max_queue": 5,
+        "worker_threads": 2,
+        "compile_timeout": 10,
+        "output_limit": 65536,
+        "sandbox_tmp_dir": "/tmp/oj_sandbox"
+    },
+    "rate_limit": {
+        "submit_window_sec": 10,
+        "max_code_size": 65536
+    }
+}
