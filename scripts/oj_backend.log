@@ -1,0 +1,6 @@
+2026-06-13 21:09:52 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-13 21:09:52 [INFO] ProblemService initialized
+2026-06-13 21:09:52 [INFO] ExecutorService initialized with 2 workers
+2026-06-13 21:09:52 [WARN] Static directory not found: public
+2026-06-13 21:09:52 [INFO] Starting server on port 8080
+2026-06-13 21:10:33 [INFO] Server stopped

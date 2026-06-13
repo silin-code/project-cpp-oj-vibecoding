@@ -1,0 +1,18 @@
+[Unit]
+Description=OJ Backend Server
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=silin
+WorkingDirectory=/home/silin/project-cpp-oj-vibecoding
+ExecStart=/home/silin/project-cpp-oj-vibecoding/build/oj_backend /home/silin/project-cpp-oj-vibecoding/config/config.json
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=oj_backend
+
+[Install]
+WantedBy=multi-user.target
