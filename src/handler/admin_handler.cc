@@ -1,8 +1,7 @@
 #include "admin_handler.hpp"
 #include "auth_handler.hpp"
 #include "../service/problem_service.hpp"
-#include "../service/auth_service.hpp"
-#include "../model/user.hpp"
+#include "../model/test_case.hpp"
 
 #include <httplib.h>
 #include <json.hpp>
@@ -16,9 +15,8 @@ static json json_error(const std::string& msg) {
 }
 
 static bool require_admin(const httplib::Request& req) {
-    User user;
-    auto sid = get_session_id(req);
-    return AuthService::instance().authenticate(sid, user) && user.role == "admin";
+    auto user = require_auth(req);
+    return user.role == "admin";
 }
 
 void handle_get_testcases(const httplib::Request& req, httplib::Response& res) {
@@ -44,6 +42,7 @@ void handle_get_testcases(const httplib::Request& req, httplib::Response& res) {
         j.push_back(std::move(item));
     }
 
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }
 
@@ -101,5 +100,6 @@ void handle_delete_testcase(const httplib::Request& req, httplib::Response& res)
 
     json j;
     j["message"] = "Test case deleted";
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }

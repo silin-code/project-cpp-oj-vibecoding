@@ -27,6 +27,14 @@ public:
     bool enqueue(int submission_id, int problem_id, int user_id,
                  const std::string& code, int time_limit, int memory_limit);
 
+    bool compile(const std::string& src_file, const std::string& bin_file,
+                 std::string& error_msg);
+    int run_sandbox(const std::string& bin_file, const std::string& input_str,
+                    std::string& output, std::string& error_msg,
+                    int& time_used_ms, int& mem_used_kb,
+                    int time_limit_sec, int mem_limit_mb);
+    std::string trim_output(const std::string& s);
+
 private:
     ExecutorService() = default;
     ~ExecutorService();
@@ -35,19 +43,9 @@ private:
 
     void worker_loop();
     void judge(SubmitTask task);
-
-    bool compile(const std::string& src_file, const std::string& bin_file,
-                 std::string& error_msg);
-    int run_sandbox(const std::string& bin_file, const std::string& input_str,
-                    std::string& output, std::string& error_msg,
-                    int& time_used_ms, int& mem_used_kb,
-                    int time_limit_sec, int mem_limit_mb);
-
     void update_status(int submission_id, const std::string& status,
                        int failed_case, const std::string& error_msg,
                        int time_used, int memory_used);
-
-    std::string trim_output(const std::string& s);
 
     std::queue<SubmitTask> queue_;
     std::mutex queue_mtx_;

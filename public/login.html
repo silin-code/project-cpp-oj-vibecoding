@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - OJ System</title>
+</head>
+<body>
+  <h1>OJ System</h1>
+  <form id="loginForm">
+    <p><input type="text" id="username" placeholder="用户名" required></p>
+    <p><input type="password" id="password" placeholder="密码" required></p>
+    <p><button type="submit">登录</button></p>
+    <p id="error" style="color:red"></p>
+  </form>
+  <script>
+    document.getElementById('loginForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('error');
+      try {
+        const data = await fetch('/api/login', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+          }),
+        });
+        const json = await data.json();
+        if (!data.ok) { err.textContent = json.error; return; }
+        window.location.href = '/admin.html';
+      } catch (e) { err.textContent = 'Network error'; }
+    };
+  </script>
+</body>
+</html>

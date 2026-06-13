@@ -3,8 +3,7 @@
 #include <string>
 #include <vector>
 #include <optional>
-
-struct TestCase;
+#include "test_case.hpp"
 
 struct Problem {
     int id = 0;

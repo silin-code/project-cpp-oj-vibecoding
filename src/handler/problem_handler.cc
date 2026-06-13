@@ -1,9 +1,7 @@
 #include "problem_handler.hpp"
 #include "auth_handler.hpp"
 #include "../service/problem_service.hpp"
-#include "../service/auth_service.hpp"
 #include "../model/problem.hpp"
-#include "../model/user.hpp"
 
 #include <httplib.h>
 #include <json.hpp>
@@ -17,9 +15,8 @@ static json json_error(const std::string& msg) {
 }
 
 static bool is_admin(const httplib::Request& req) {
-    User user;
-    auto sid = get_session_id(req);
-    return AuthService::instance().authenticate(sid, user) && user.role == "admin";
+    auto user = require_auth(req);
+    return user.role == "admin";
 }
 
 void handle_get_problems(const httplib::Request& req, httplib::Response& res) {
@@ -37,6 +34,7 @@ void handle_get_problems(const httplib::Request& req, httplib::Response& res) {
         j.push_back(std::move(item));
     }
 
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }
 
@@ -72,6 +70,7 @@ void handle_get_problem(const httplib::Request& req, httplib::Response& res) {
     }
     j["sample_cases"] = std::move(samples);
 
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }
 
@@ -147,6 +146,7 @@ void handle_update_problem(const httplib::Request& req, httplib::Response& res) 
 
     json j;
     j["message"] = "Problem updated";
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }
 
@@ -167,5 +167,6 @@ void handle_delete_problem(const httplib::Request& req, httplib::Response& res) 
 
     json j;
     j["message"] = "Problem deleted";
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }

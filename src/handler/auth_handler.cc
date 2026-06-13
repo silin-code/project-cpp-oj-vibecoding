@@ -1,6 +1,5 @@
 #include "auth_handler.hpp"
 #include "../service/auth_service.hpp"
-#include "../model/user.hpp"
 
 #include <httplib.h>
 #include <json.hpp>
@@ -27,9 +26,9 @@ std::string get_session_id(const httplib::Request& req) {
     return cookie.substr(pos, end - pos);
 }
 
-static bool require_auth(const httplib::Request& req, User& user) {
+SessionInfo require_auth(const httplib::Request& req) {
     auto sid = get_session_id(req);
-    return AuthService::instance().authenticate(sid, user);
+    return AuthService::instance().authenticate(sid);
 }
 
 void handle_register(const httplib::Request& req, httplib::Response& res) {
@@ -50,10 +49,15 @@ void handle_register(const httplib::Request& req, httplib::Response& res) {
         return;
     }
 
-    int user_id = AuthService::instance().register_user(username, password);
+    std::string err;
+    int user_id = AuthService::instance().register_user(username, password, err);
     if (user_id < 0) {
-        res.status = 409;
-        res.set_content(json_error("Username already exists").dump(), "application/json");
+        if (err == "Username already exists") {
+            res.status = 409;
+        } else {
+            res.status = 500;
+        }
+        res.set_content(json_error(err).dump(), "application/json");
         return;
     }
 
@@ -82,16 +86,18 @@ void handle_login(const httplib::Request& req, httplib::Response& res) {
         return;
     }
 
-    auto session_id = AuthService::instance().login(username, password);
+    std::string err;
+    auto session_id = AuthService::instance().login(username, password, err);
     if (session_id.empty()) {
         res.status = 401;
-        res.set_content(json_error("Invalid credentials").dump(), "application/json");
+        res.set_content(json_error(err.empty() ? "Invalid credentials" : err).dump(), "application/json");
         return;
     }
 
     json j;
     j["message"] = "Login successful";
     j["username"] = username;
+    res.status = 200;
     res.set_header("Set-Cookie", "session_id=" + session_id + "; Path=/; HttpOnly");
     res.set_content(j.dump(), "application/json");
 }
@@ -102,21 +108,23 @@ void handle_logout(const httplib::Request& req, httplib::Response& res) {
 
     json j;
     j["message"] = "Logged out";
+    res.status = 200;
     res.set_header("Set-Cookie", "session_id=; Path=/; Max-Age=0");
     res.set_content(j.dump(), "application/json");
 }
 
 void handle_me(const httplib::Request& req, httplib::Response& res) {
-    User user;
-    if (!require_auth(req, user)) {
+    auto user = require_auth(req);
+    if (user.user_id <= 0) {
         res.status = 401;
         res.set_content(json_error("Not authenticated").dump(), "application/json");
         return;
     }
 
     json j;
-    j["id"] = user.id;
+    j["id"] = user.user_id;
     j["username"] = user.username;
     j["role"] = user.role;
+    res.status = 200;
     res.set_content(j.dump(), "application/json");
 }

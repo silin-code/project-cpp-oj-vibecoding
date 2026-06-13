@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>管理后台 - OJ System</title>
+</head>
+<body>
+  <h1>题目管理</h1>
+  <p id="userInfo"></p>
+  <p id="error" style="color:red"></p>
+  <p id="success" style="color:green"></p>
+
+  <h2>新建题目</h2>
+  <form id="problemForm">
+    <p><input type="text" id="title" placeholder="标题" required style="width:400px"></p>
+    <p><textarea id="description" placeholder="题目描述" rows="6" cols="60" required></textarea></p>
+    <p><input type="text" id="input_desc" placeholder="输入格式" style="width:400px"></p>
+    <p><input type="text" id="output_desc" placeholder="输出格式" style="width:400px"></p>
+    <p>
+      难度:
+      <select id="difficulty">
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+      &nbsp; 时间限制(秒): <input type="number" id="time_limit" value="2" style="width:60px">
+      &nbsp; 内存限制(MB): <input type="number" id="memory_limit" value="256" style="width:60px">
+    </p>
+    <p><button type="submit">创建题目</button></p>
+  </form>
+
+  <hr>
+  <a href="/login.html">登录</a>
+
+  <script>
+    async function checkAuth() {
+      try {
+        const resp = await fetch('/api/me', { credentials: 'same-origin' });
+        const data = await resp.json();
+        if (!resp.ok) { window.location.href = '/login.html'; return; }
+        document.getElementById('userInfo').textContent =
+          '当前用户: ' + data.username + ' (角色: ' + data.role + ')';
+        if (data.role !== 'admin') {
+          document.getElementById('error').textContent = '需要管理员权限';
+          document.querySelector('button[type="submit"]').disabled = true;
+        }
+      } catch (e) {
+        window.location.href = '/login.html';
+      }
+    }
+    checkAuth();
+
+    document.getElementById('problemForm').onsubmit = async (e) => {
+      e.preventDefault();
+      const err = document.getElementById('error');
+      const ok = document.getElementById('success');
+      err.textContent = '';
+      ok.textContent = '';
+      try {
+        const body = {
+          title: document.getElementById('title').value,
+          description: document.getElementById('description').value,
+          input_desc: document.getElementById('input_desc').value,
+          output_desc: document.getElementById('output_desc').value,
+          difficulty: document.getElementById('difficulty').value,
+          time_limit: parseInt(document.getElementById('time_limit').value),
+          memory_limit: parseInt(document.getElementById('memory_limit').value),
+        };
+        const resp = await fetch('/api/problems', {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+        if (!resp.ok) { err.textContent = data.error; return; }
+        ok.textContent = '题目创建成功! ID = ' + data.id;
+        document.getElementById('problemForm').reset();
+      } catch (e) { err.textContent = 'Network error'; }
+    };
+  </script>
+</body>
+</html>

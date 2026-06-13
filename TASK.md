@@ -39,10 +39,10 @@
   - [x] 限流: 内存中记录每用户最后提交时间, 10 秒窗口
   - [x] Session 清理: 启动 + 每 30 分钟扫描过期文件
   - [x] 4.1.t `test/auth_test/auth_test.cc`（注册/登录/鉴权/限流/登出集成测试, 12 tests passed）
-- [ ] 4.2 `src/service/problem_service.hpp` + `problem_service.cc`
-  - CRUD 题目（增删改查 + 列表含通过率统计）
-  - 查测试用例（按 problem_id + 区分 sample/hidden）
-  - [ ] 4.2.t `tests/integration/problem_test.cc`
+- [x] 4.2 `src/service/problem_service.hpp` + `problem_service.cc`
+  - [x] CRUD 题目（增删改查 + 列表含通过率统计）
+  - [x] 查测试用例（按 problem_id + 区分 sample/hidden）
+  - [x] 4.2.t `test/problem_test/problem_test.cc`（增删改查+测试用例, 9 tests passed）
 - [ ] 4.3 `src/service/executor_service.hpp` + `executor_service.cc`
   - 任务队列 + Worker 线程
   - 沙箱: fork → seccomp → unshare(NS) → setrlimit → chroot → exec
