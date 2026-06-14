@@ -50,6 +50,6 @@ CREATE TABLE IF NOT EXISTS submissions (
     FOREIGN KEY (problem_id) REFERENCES problems(id)
 );
 
--- Root admin account (password: silin_10086)
+-- Root admin account (default password: see deployment docs)
 INSERT IGNORE INTO users (username, password, role)
 VALUES ('root', '$2b$12$rRLy3uV8Hoq1aKm6SWiNAOD4AK.YT1Z7lgFemj0eRmUhXrSW6r8rO', 'admin');

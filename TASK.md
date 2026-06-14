@@ -10,7 +10,7 @@
 - [x] 1.2 安装开发库: `libmysqlclient-dev`, `libssl-dev`, `libseccomp-dev`, `libgtest-dev`
 - [x] 1.3 确认 MySQL 服务运行中
 - [x] 1.4 创建数据库 `oj_system` + 执行 `database/init.sql` 建表
-- [x] 1.5 插入 root 管理员账号（密码 silin_10086）
+- [x] 1.5 插入 root 管理员账号（密码见 init.sql 注释）
 
 ## 阶段二：项目骨架
 

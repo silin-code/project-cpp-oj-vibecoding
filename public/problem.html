@@ -235,7 +235,19 @@ function renderResult(data) {
     html += '<h3>判题结果: <span class="badge ' + badgeClass + '">' + data.status + '</span></h3>';
 
     var showCase = function() {
-        if (data.failed_case > 0) html += '<p>未通过测试用例: #' + data.failed_case + '</p>';
+        if (data.failed_case > 0) {
+            html += '<div style="margin-top:12px">';
+            html += '<p style="font-weight:600;margin-bottom:8px">未通过测试用例 #' + data.failed_case + '</p>';
+            if (data.failed_input !== undefined) {
+                html += '<div class="form-group"><label>输入:</label>';
+                html += '<pre style="background:var(--bg-input);padding:8px;border-radius:var(--radius);overflow-x:auto">' + escapeHtml(data.failed_input) + '</pre></div>';
+            }
+            if (data.failed_expected !== undefined) {
+                html += '<div class="form-group"><label>期望输出:</label>';
+                html += '<pre style="background:var(--bg-input);padding:8px;border-radius:var(--radius);overflow-x:auto">' + escapeHtml(data.failed_expected) + '</pre></div>';
+            }
+            html += '</div>';
+        }
     };
 
     if (data.status === 'AC') {

@@ -162,13 +162,36 @@ void handle_get_submission(const httplib::Request& req, httplib::Response& res) 
     j["id"] = std::stoi(row[0]);
     j["problem_id"] = std::stoi(row[1]);
     j["status"] = row[2] ? row[2] : "PENDING";
-    j["failed_case"] = row[3] ? std::stoi(row[3]) : 0;
+    int failed_case = row[3] ? std::stoi(row[3]) : 0;
+    j["failed_case"] = failed_case;
     j["error_msg"] = row[4] ? row[4] : "";
     j["time_used"] = row[5] ? std::stoi(row[5]) : 0;
     j["memory_used"] = row[6] ? std::stoi(row[6]) : 0;
     j["created_at"] = row[7] ? row[7] : "";
+    int problem_id = std::stoi(row[1]);
 
     mysql_free_result(result);
+
+    if (failed_case > 0) {
+        std::string tc_q = "SELECT input, expected FROM testcases "
+                           "WHERE problem_id=" + std::to_string(problem_id)
+                           + " ORDER BY sort_order, id"
+                           + " LIMIT " + std::to_string(failed_case - 1) + ", 1";
+
+        if (mysql_query(conn, tc_q.c_str()) == 0) {
+            auto* tc_result = mysql_store_result(conn);
+            if (tc_result && mysql_num_rows(tc_result) > 0) {
+                auto* tc_row = mysql_fetch_row(tc_result);
+                j["failed_input"] = tc_row[0] ? tc_row[0] : "";
+                j["failed_expected"] = tc_row[1] ? tc_row[1] : "";
+            } else {
+                j["failed_input"] = "";
+                j["failed_expected"] = "";
+            }
+            if (tc_result) mysql_free_result(tc_result);
+        }
+    }
+
     pool.release(conn);
 
     res.status = 200;

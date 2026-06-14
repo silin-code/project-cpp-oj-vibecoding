@@ -142,3 +142,37 @@
 2026-06-14 17:22:29 [INFO] Submission 24 → AC
 2026-06-14 17:22:39 [INFO] Submission 25 → JUDGING
 2026-06-14 17:22:40 [INFO] Submission 25 → WA
+2026-06-14 17:24:39 [INFO] Server stopped
+2026-06-14 17:24:54 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 17:24:54 [INFO] ProblemService initialized
+2026-06-14 17:24:54 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 17:24:54 [INFO] Starting server on port 8080
+2026-06-14 17:25:03 [INFO] Submission 26 → JUDGING
+2026-06-14 17:25:04 [INFO] Submission 26 → WA
+2026-06-14 17:26:03 [INFO] Submission 27 → JUDGING
+2026-06-14 17:26:04 [INFO] Submission 27 → WA
+2026-06-14 17:26:14 [INFO] Session deleted: 43295c1fdd52ad5d207c3636b02753cebf82726678a08d554fb3ca7181a9b491
+2026-06-14 17:26:26 [INFO] Submission 28 → JUDGING
+2026-06-14 17:26:27 [INFO] Submission 28 → WA
+2026-06-14 17:28:46 [INFO] Submission 29 → JUDGING
+2026-06-14 17:28:47 [INFO] Submission 29 → CE
+2026-06-14 17:29:28 [INFO] Submission 30 → JUDGING
+2026-06-14 17:29:28 [INFO] Submission 30 → WA
+2026-06-14 17:29:47 [INFO] Submission 31 → JUDGING
+2026-06-14 17:29:47 [INFO] Submission 31 → WA
+2026-06-14 17:29:59 [INFO] Submission 32 → JUDGING
+2026-06-14 17:30:01 [INFO] Submission 32 → TLE
+2026-06-14 17:30:21 [INFO] Submission 33 → JUDGING
+2026-06-14 17:30:21 [INFO] Submission 33 → WA
+2026-06-14 17:30:31 [INFO] Submission 34 → JUDGING
+2026-06-14 17:30:31 [INFO] Submission 34 → WA
+2026-06-14 17:30:55 [INFO] Submission 35 → JUDGING
+2026-06-14 17:30:55 [INFO] Submission 35 → AC
+2026-06-14 17:31:06 [INFO] Submission 36 → JUDGING
+2026-06-14 17:31:06 [INFO] Submission 36 → AC
+2026-06-14 17:31:17 [INFO] Submission 37 → JUDGING
+2026-06-14 17:31:18 [INFO] Submission 37 → AC
+2026-06-14 17:31:58 [INFO] Submission 38 → JUDGING
+2026-06-14 17:32:00 [INFO] Submission 38 → TLE
+2026-06-14 17:32:34 [INFO] Submission 39 → JUDGING
+2026-06-14 17:32:34 [INFO] Submission 39 → RE
