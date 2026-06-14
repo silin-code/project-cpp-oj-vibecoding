@@ -1,9 +1,24 @@
 async function submitCode() {
-    if (!editorView || !currentProblemId) return;
-
-    const code = editorView.state.doc.toString();
     const resultDiv = document.getElementById('result');
     const btn = document.getElementById('submitBtn');
+
+    if (!currentProblemId) {
+        resultDiv.innerHTML = '<p class="error">题目未加载</p>';
+        return;
+    }
+
+    let code;
+    if (window.editorView && window.editorView.state) {
+        code = window.editorView.state.doc.toString();
+    } else {
+        const ta = document.getElementById('codeFallback');
+        if (ta) {
+            code = ta.value;
+        } else {
+            resultDiv.innerHTML = '<p class="error">编辑器未初始化，请刷新页面</p>';
+            return;
+        }
+    }
 
     if (!code.trim()) {
         resultDiv.innerHTML = '<p class="error">代码不能为空</p>';
