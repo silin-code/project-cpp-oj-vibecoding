@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>题目详情 - OJ System</title>
 <link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/monokai.min.css">
 <style>
 .status-bar { display:flex; gap:12px; align-items:center; padding:12px 16px; background:var(--bg-card); border-radius:var(--radius); margin:8px 0 16px; border:1px solid var(--border); }
 .status-step { display:flex; align-items:center; gap:6px; color:var(--text-muted); font-size:0.85rem; }
@@ -12,7 +14,13 @@
 .status-step.done { color:var(--success); }
 .status-step .dot { width:8px; height:8px; border-radius:50%; background:currentColor; }
 .status-arrow { color:var(--text-muted); }
+.CodeMirror { height: 400px; border-radius: var(--radius); border: 1px solid var(--border); font-size: 0.9rem; }
+.CodeMirror-gutters { border-right: 1px solid var(--border); }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -66,31 +74,49 @@ int main() {
 <script src="/js/problem_detail.js"></script>
 <script>
 var currentProblemId = 0;
+var cmEditor = null;
 
 (function() {
     var ta = document.getElementById('codeEditor');
-    
-    ta.addEventListener('keydown', function(e) {
-        if (e.key === 'Tab') {
-            e.preventDefault();
-            var start = ta.selectionStart;
-            var end = ta.selectionEnd;
-            ta.value = ta.value.substring(0, start) + '\t' + ta.value.substring(end);
-            ta.selectionStart = ta.selectionEnd = start + 1;
-            updateCharCount();
-        }
-    });
-    
-    ta.addEventListener('input', updateCharCount);
-    
+    if (typeof CodeMirror !== 'undefined' && ta) {
+        cmEditor = CodeMirror.fromTextArea(ta, {
+            mode: 'text/x-c++src',
+            theme: 'monokai',
+            lineNumbers: true,
+            indentUnit: 4,
+            tabSize: 4,
+            indentWithTabs: false,
+            matchBrackets: true,
+            styleActiveLine: true,
+            viewportMargin: Infinity,
+        });
+        cmEditor.on('change', function() {
+            var len = cmEditor.getValue().length;
+            document.getElementById('charCount').textContent = len + ' / 65536 (剩余 ' + (65536 - len) + ')';
+        });
+        updateCharCount();
+    } else {
+        ta.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                e.preventDefault();
+                var start = ta.selectionStart, end = ta.selectionEnd;
+                ta.value = ta.value.substring(0, start) + '\t' + ta.value.substring(end);
+                ta.selectionStart = ta.selectionEnd = start + 1;
+                updateCharCount();
+            }
+        });
+        ta.addEventListener('input', updateCharCount);
+        updateCharCount();
+    }
+
     function updateCharCount() {
-        var len = ta.value.length;
+        var len = cmEditor ? cmEditor.getValue().length : ta.value.length;
         document.getElementById('charCount').textContent = len + ' / 65536 (剩余 ' + (65536 - len) + ')';
     }
-    updateCharCount();
 })();
 
 function getCode() {
+    if (cmEditor) return cmEditor.getValue();
     var ta = document.getElementById('codeEditor');
     return ta ? ta.value : '';
 }
@@ -208,13 +234,15 @@ function renderResult(data) {
     var html = '<div class="card" style="border-left:3px solid var(--accent)">';
     html += '<h3>判题结果: <span class="badge ' + badgeClass + '">' + data.status + '</span></h3>';
 
+    var showCase = function() {
+        if (data.failed_case > 0) html += '<p>未通过测试用例: #' + data.failed_case + '</p>';
+    };
+
     if (data.status === 'AC') {
         html += '<p class="success">通过</p>';
     } else if (data.status === 'WA') {
         html += '<p class="error">答案错误</p>';
-        if (data.failed_case > 0) {
-            html += '<p>未通过测试用例: #' + data.failed_case + '</p>';
-        }
+        showCase();
     } else if (data.status === 'CE') {
         html += '<p class="error">编译错误</p>';
         if (data.error_msg) {
@@ -222,13 +250,16 @@ function renderResult(data) {
         }
     } else if (data.status === 'RE') {
         html += '<p class="error">运行时错误</p>';
+        showCase();
         if (data.error_msg) {
             html += '<pre style="background:var(--bg-input);padding:8px;border-radius:var(--radius);overflow-x:auto;white-space:pre-wrap;font-size:0.85rem">' + escapeHtml(data.error_msg) + '</pre>';
         }
     } else if (data.status === 'TLE') {
         html += '<p class="error">运行超时</p>';
+        showCase();
     } else if (data.status === 'MLE') {
         html += '<p class="error">内存超限</p>';
+        showCase();
     }
 
     if (data.time_used > 0) html += '<p>耗时: ' + data.time_used + 'ms</p>';
