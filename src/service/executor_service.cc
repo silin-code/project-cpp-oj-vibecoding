@@ -139,6 +139,7 @@ void ExecutorService::judge(SubmitTask task) {
 
     int case_idx = 0;
     bool all_passed = true;
+    int max_time_ms = 0, max_mem_kb = 0;
 
     while (auto* row = mysql_fetch_row(result)) {
         ++case_idx;
@@ -151,6 +152,9 @@ void ExecutorService::judge(SubmitTask task) {
 
         int ret = run_sandbox(bin_file.string(), input_data, output, run_err,
                               time_ms, mem_kb, task.time_limit, task.memory_limit);
+
+        if (time_ms > max_time_ms) max_time_ms = time_ms;
+        if (mem_kb > max_mem_kb) max_mem_kb = mem_kb;
 
         if (ret == -1) {
             update_status(task.submission_id, "RE", case_idx, run_err, time_ms, mem_kb);
@@ -175,7 +179,7 @@ void ExecutorService::judge(SubmitTask task) {
     pool.release(conn);
 
     if (all_passed) {
-        update_status(task.submission_id, "AC", 0, "", 0, 0);
+        update_status(task.submission_id, "AC", 0, "", max_time_ms, max_mem_kb);
     }
 
     fs::remove_all(sandbox_dir);
@@ -204,8 +208,8 @@ bool ExecutorService::compile(const std::string& src_file, const std::string& bi
         rl.rlim_max = timeout + 5;
         setrlimit(RLIMIT_CPU, &rl);
 
-        rl.rlim_cur = 512 * 1024;
-        rl.rlim_max = 512 * 1024;
+        rl.rlim_cur = 256ULL * 1024 * 1024;
+        rl.rlim_max = 512ULL * 1024 * 1024;
         setrlimit(RLIMIT_AS, &rl);
 
         int devnull = open("/dev/null", O_WRONLY);
@@ -236,7 +240,19 @@ bool ExecutorService::compile(const std::string& src_file, const std::string& bi
         return true;
     }
 
-    error_msg = std::move(err);
+    if (WIFSIGNALED(status)) {
+        int sig = WTERMSIG(status);
+        if (sig == SIGXCPU || sig == SIGKILL)
+            error_msg = "Compilation killed: resource limit exceeded (timeout or memory)";
+        else
+            error_msg = "Compilation killed by signal " + std::to_string(sig);
+        if (!err.empty())
+            error_msg += "\n" + err;
+    } else if (!err.empty()) {
+        error_msg = std::move(err);
+    } else {
+        error_msg = "Compilation failed with exit code " + std::to_string(WEXITSTATUS(status));
+    }
     return false;
 }
 
@@ -257,6 +273,16 @@ static bool setup_seccomp_filter() {
         SCMP_SYS(newfstatat), SCMP_SYS(getdents64),
         SCMP_SYS(dup), SCMP_SYS(dup2),
         SCMP_SYS(openat),
+        SCMP_SYS(arch_prctl),
+        SCMP_SYS(set_tid_address),
+        SCMP_SYS(set_robust_list),
+        SCMP_SYS(prlimit64),
+        SCMP_SYS(madvise),
+        SCMP_SYS(readlink),
+        SCMP_SYS(access),
+        SCMP_SYS(rseq),
+        SCMP_SYS(pread64),
+        SCMP_SYS(execve),
     };
 
     for (int syscall : allowed) {
@@ -324,6 +350,7 @@ int ExecutorService::run_sandbox(
         rl.rlim_max = 0;
         setrlimit(RLIMIT_NPROC, &rl);
 
+        // setup_seccomp_filter();
         setup_seccomp_filter();
 
         execl(bin_file.c_str(), bin_file.c_str(), nullptr);

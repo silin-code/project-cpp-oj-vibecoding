@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>题目列表 - OJ System</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="container">
+  <nav>
+    <a href="/">OJ System</a>
+    <a href="/admin.html">管理</a>
+    <span class="spacer"></span>
+    <span id="userInfo"></span>
+    <button class="secondary small" id="logoutBtn">登出</button>
+  </nav>
+
+  <div style="display:flex;align-items:center;gap:12px">
+    <h2>题目列表</h2>
+    <a id="newProblemBtn" href="/admin.html" style="display:none;padding:6px 16px;background:var(--accent);color:#fff;border-radius:var(--radius);font-weight:600;font-size:0.9rem">+ 新增题目</a>
+  </div>
+  <div class="card">
+    <table>
+      <thead>
+        <tr><th>标题</th><th>难度</th><th>通过率</th><th>提交数</th></tr>
+      </thead>
+      <tbody id="problemList">
+        <tr><td colspan="4" style="text-align:center"><span class="spinner"></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/problem.js"></script>
+<script>
+(async () => {
+    const user = await requireAuth();
+    if (!user) return;
+    document.getElementById('userInfo').textContent = user.username + ' (' + user.role + ')';
+
+    document.getElementById('logoutBtn').onclick = async () => {
+        await api('/api/logout', { method: 'POST' });
+        window.location.href = '/login.html';
+    };
+
+    if (user.role === 'admin') {
+        document.getElementById('newProblemBtn').style.display = 'inline-block';
+    }
+
+    loadProblemList();
+})();
+</script>
+</body>
+</html>

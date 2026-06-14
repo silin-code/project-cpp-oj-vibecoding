@@ -4,81 +4,191 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>管理后台 - OJ System</title>
+<link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>题目管理</h1>
-  <p id="userInfo"></p>
-  <p id="error" style="color:red"></p>
-  <p id="success" style="color:green"></p>
+<div class="container">
+  <nav>
+    <a href="/">OJ System</a>
+    <a href="/admin.html">管理</a>
+    <span class="spacer"></span>
+    <span id="userInfo"></span>
+    <button class="secondary small" id="logoutBtn">登出</button>
+  </nav>
 
-  <h2>新建题目</h2>
-  <form id="problemForm">
-    <p><input type="text" id="title" placeholder="标题" required style="width:400px"></p>
-    <p><textarea id="description" placeholder="题目描述" rows="6" cols="60" required></textarea></p>
-    <p><input type="text" id="input_desc" placeholder="输入格式" style="width:400px"></p>
-    <p><input type="text" id="output_desc" placeholder="输出格式" style="width:400px"></p>
-    <p>
-      难度:
-      <select id="difficulty">
-        <option value="easy">Easy</option>
-        <option value="medium">Medium</option>
-        <option value="hard">Hard</option>
-      </select>
-      &nbsp; 时间限制(秒): <input type="number" id="time_limit" value="2" style="width:60px">
-      &nbsp; 内存限制(MB): <input type="number" id="memory_limit" value="256" style="width:60px">
-    </p>
-    <p><button type="submit">创建题目</button></p>
-  </form>
+  <h2>题目管理</h2>
+  <p id="error" class="error"></p>
+  <p id="success" class="success"></p>
 
-  <hr>
-  <a href="/login.html">登录</a>
+  <div class="card">
+    <h3>题目列表</h3>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>标题</th><th>难度</th><th>通过率</th><th>操作</th></tr>
+      </thead>
+      <tbody id="problemTableBody">
+        <tr><td colspan="5" style="text-align:center"><span class="spinner"></span></td></tr>
+      </tbody>
+    </table>
+  </div>
 
-  <script>
-    async function checkAuth() {
-      try {
-        const resp = await fetch('/api/me', { credentials: 'same-origin' });
-        const data = await resp.json();
-        if (!resp.ok) { window.location.href = '/login.html'; return; }
-        document.getElementById('userInfo').textContent =
-          '当前用户: ' + data.username + ' (角色: ' + data.role + ')';
-        if (data.role !== 'admin') {
-          document.getElementById('error').textContent = '需要管理员权限';
-          document.querySelector('button[type="submit"]').disabled = true;
-        }
-      } catch (e) {
-        window.location.href = '/login.html';
-      }
+  <div class="card" style="margin-top:20px">
+    <h3>新建题目</h3>
+    <form id="problemForm">
+      <div class="form-group">
+        <label>标题</label>
+        <input type="text" id="title" required style="width:100%">
+      </div>
+      <div class="form-group">
+        <label>题目描述</label>
+        <textarea id="description" rows="6" style="width:100%" required></textarea>
+      </div>
+      <div class="inline-form">
+        <div class="form-group">
+          <label>输入格式</label>
+          <input type="text" id="input_desc" style="width:200px">
+        </div>
+        <div class="form-group">
+          <label>输出格式</label>
+          <input type="text" id="output_desc" style="width:200px">
+        </div>
+      </div>
+      <div class="inline-form">
+        <div class="form-group">
+          <label>难度</label>
+          <select id="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium">Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>时间限制(秒)</label>
+          <input type="number" id="time_limit" value="2" min="1" max="60" style="width:80px">
+        </div>
+        <div class="form-group">
+          <label>内存限制(MB)</label>
+          <input type="number" id="memory_limit" value="256" min="16" max="2048" style="width:80px">
+        </div>
+      </div>
+      <button type="submit">创建题目</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h3>编辑题目</h3>
+    <p id="editError" class="error"></p>
+    <div class="form-group">
+      <label>标题</label>
+      <input type="text" id="edit_title" style="width:100%">
+    </div>
+    <div class="form-group">
+      <label>题目描述</label>
+      <textarea id="edit_description" rows="5" style="width:100%"></textarea>
+    </div>
+    <div class="inline-form">
+      <div class="form-group">
+        <label>输入格式</label>
+        <input type="text" id="edit_input_desc" style="width:180px">
+      </div>
+      <div class="form-group">
+        <label>输出格式</label>
+        <input type="text" id="edit_output_desc" style="width:180px">
+      </div>
+    </div>
+    <div class="inline-form">
+      <div class="form-group">
+        <label>难度</label>
+        <select id="edit_difficulty">
+          <option value="easy">Easy</option>
+          <option value="medium">Medium</option>
+          <option value="hard">Hard</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>时间限制(秒)</label>
+        <input type="number" id="edit_time_limit" min="1" max="60" style="width:70px">
+      </div>
+      <div class="form-group">
+        <label>内存限制(MB)</label>
+        <input type="number" id="edit_memory_limit" min="16" max="2048" style="width:70px">
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:8px">
+      <button onclick="updateProblem()">保存</button>
+      <button class="secondary" onclick="closeEditModal()">取消</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="tcModal">
+  <div class="modal" style="max-width:700px">
+    <h3>测试用例管理 - <span id="tcProblemTitle"></span></h3>
+    <p id="tcError" class="error"></p>
+    <p id="tcSuccess" class="success"></p>
+
+    <h4>现有用例</h4>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>输入</th><th>期望输出</th><th>类型</th><th>操作</th></tr>
+      </thead>
+      <tbody id="tcTableBody">
+        <tr><td colspan="5" style="text-align:center"><span class="spinner"></span></td></tr>
+      </tbody>
+    </table>
+
+    <h4 style="margin-top:16px">添加用例</h4>
+    <div class="form-group">
+      <label>输入</label>
+      <textarea id="tcInput" rows="4" style="width:100%"></textarea>
+    </div>
+    <div class="form-group">
+      <label>期望输出</label>
+      <textarea id="tcExpected" rows="4" style="width:100%"></textarea>
+    </div>
+    <div class="form-group">
+      <label>
+        <input type="checkbox" id="tcIsSample" checked>
+        示例用例（勾选后用户可见）
+      </label>
+    </div>
+    <button onclick="addTestcase()">添加</button>
+
+    <div style="margin-top:16px">
+      <button class="secondary" onclick="closeTcModal()">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/auth.js"></script>
+<script src="/js/admin.js"></script>
+<script>
+(async () => {
+    const user = await requireAuth();
+    if (!user) return;
+    document.getElementById('userInfo').textContent = user.username + ' (' + user.role + ')';
+
+    if (user.role !== 'admin') {
+        document.getElementById('error').textContent = '需要管理员权限';
+        document.getElementById('problemForm').style.display = 'none';
+        return;
     }
-    checkAuth();
 
-    document.getElementById('problemForm').onsubmit = async (e) => {
-      e.preventDefault();
-      const err = document.getElementById('error');
-      const ok = document.getElementById('success');
-      err.textContent = '';
-      ok.textContent = '';
-      try {
-        const body = {
-          title: document.getElementById('title').value,
-          description: document.getElementById('description').value,
-          input_desc: document.getElementById('input_desc').value,
-          output_desc: document.getElementById('output_desc').value,
-          difficulty: document.getElementById('difficulty').value,
-          time_limit: parseInt(document.getElementById('time_limit').value),
-          memory_limit: parseInt(document.getElementById('memory_limit').value),
-        };
-        const resp = await fetch('/api/problems', {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        });
-        const data = await resp.json();
-        if (!resp.ok) { err.textContent = data.error; return; }
-        ok.textContent = '题目创建成功! ID = ' + data.id;
-        document.getElementById('problemForm').reset();
-      } catch (e) { err.textContent = 'Network error'; }
+    document.getElementById('logoutBtn').onclick = async () => {
+        await api('/api/logout', { method: 'POST' });
+        window.location.href = '/login.html';
     };
-  </script>
+
+    document.getElementById('problemForm').onsubmit = (e) => {
+        e.preventDefault();
+        createProblem();
+    };
+
+    loadProblems();
+})();
+</script>
 </body>
 </html>

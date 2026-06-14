@@ -1,0 +1,63 @@
+2026-06-13 21:10:36 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-13 21:10:36 [INFO] ProblemService initialized
+2026-06-13 21:10:36 [INFO] ExecutorService initialized with 2 workers
+2026-06-13 21:10:36 [INFO] Starting server on port 8080
+2026-06-13 21:11:19 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-13 21:11:19 [INFO] ProblemService initialized
+2026-06-13 21:11:19 [INFO] ExecutorService initialized with 2 workers
+2026-06-13 21:11:19 [INFO] Starting server on port 8080
+2026-06-13 21:11:50 [INFO] Session deleted: 51143dfc976c62c4149595bbf7d8e583c71d1f87186df62d38489677d16b1165
+2026-06-13 21:12:44 [INFO] Server stopped
+2026-06-13 21:12:58 [INFO] Problem created: id=9
+2026-06-13 21:15:52 [INFO] Server stopped
+2026-06-13 21:16:06 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-13 21:16:06 [INFO] ProblemService initialized
+2026-06-13 21:16:06 [INFO] ExecutorService initialized with 2 workers
+2026-06-13 21:16:06 [INFO] Starting server on port 8080
+2026-06-14 13:57:44 [INFO] Submission 1 → JUDGING
+2026-06-14 13:57:44 [INFO] Submission 1 → CE
+2026-06-14 13:59:19 [INFO] Session deleted: 8e44722fbc15a04a42fa32850fc2da6f624c5d8a02492dc74f184734ca73f5e1
+2026-06-14 13:59:31 [INFO] User registered: 1 (id=68)
+2026-06-14 13:59:44 [INFO] Session deleted: 14ae5060e137ed61b11ea4142f745a48880ff19869f5c6be876ea3e5c8d3aab1
+2026-06-14 14:00:00 [INFO] Submission 2 → JUDGING
+2026-06-14 14:00:00 [INFO] Submission 2 → CE
+2026-06-14 14:00:53 [INFO] Server stopped
+2026-06-14 14:01:02 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 14:01:02 [INFO] ProblemService initialized
+2026-06-14 14:01:02 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 14:01:02 [INFO] Starting server on port 8080
+2026-06-14 14:01:20 [INFO] Submission 3 → JUDGING
+2026-06-14 14:01:20 [INFO] Submission 3 → RE
+2026-06-14 14:01:45 [INFO] Server stopped
+2026-06-14 14:01:51 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 14:01:51 [INFO] ProblemService initialized
+2026-06-14 14:01:51 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 14:01:51 [INFO] Starting server on port 8080
+2026-06-14 14:01:56 [INFO] Submission 4 → JUDGING
+2026-06-14 14:01:56 [INFO] Submission 4 → RE
+2026-06-14 14:03:23 [INFO] Server stopped
+2026-06-14 14:05:35 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 14:05:35 [INFO] ProblemService initialized
+2026-06-14 14:05:35 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 14:05:35 [INFO] Starting server on port 8080
+2026-06-14 14:05:41 [INFO] Submission 5 → JUDGING
+2026-06-14 14:05:42 [INFO] Submission 5 → AC
+2026-06-14 14:06:54 [INFO] Server stopped
+2026-06-14 14:09:39 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 14:09:39 [INFO] ProblemService initialized
+2026-06-14 14:09:39 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 14:09:39 [INFO] Starting server on port 8080
+2026-06-14 14:09:46 [INFO] Submission 6 → JUDGING
+2026-06-14 14:09:47 [INFO] Submission 6 → AC
+2026-06-14 14:10:06 [INFO] Submission 7 → JUDGING
+2026-06-14 14:10:06 [INFO] Submission 7 → WA
+2026-06-14 14:10:33 [INFO] Submission 8 → JUDGING
+2026-06-14 14:10:34 [INFO] Submission 8 → CE
+2026-06-14 14:10:47 [INFO] Problem created: id=10
+2026-06-14 14:11:10 [INFO] Server stopped
+2026-06-14 14:11:51 [INFO] AuthService initialized, session dir: /var/oj/sessions
+2026-06-14 14:11:51 [INFO] ProblemService initialized
+2026-06-14 14:11:51 [INFO] ExecutorService initialized with 2 workers
+2026-06-14 14:11:51 [INFO] Starting server on port 8080
+2026-06-14 14:11:56 [INFO] Submission 9 → JUDGING
+2026-06-14 14:11:56 [INFO] Submission 9 → AC

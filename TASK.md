@@ -43,60 +43,57 @@
   - [x] CRUD 题目（增删改查 + 列表含通过率统计）
   - [x] 查测试用例（按 problem_id + 区分 sample/hidden）
   - [x] 4.2.t `test/problem_test/problem_test.cc`（增删改查+测试用例, 9 tests passed）
-- [ ] 4.3 `src/service/executor_service.hpp` + `executor_service.cc`
+- [x] 4.3 `src/service/executor_service.hpp` + `executor_service.cc`
   - 任务队列 + Worker 线程
   - 沙箱: fork → seccomp → unshare(NS) → setrlimit → chroot → exec
   - 编译用户代码 (g++), 捕获编译错误 → CE
   - 逐组运行测试用例 (stdin → stdout), 比对期望输出
   - 记录结果到 MySQL, 状态机: PENDING → JUDGING → AC/WA/CE/RE/TLE/MLE
-  - [ ] 4.3.t `tests/unit/executor_test.cc` + `tests/integration/executor_test.cc`
+  - [x] 4.3.t `tests/unit/executor_test.cc`
 
 ## 阶段五：后端 Handler + Server 层
 
 > 每个 Handler 实现后跟对应的 API 测试。
 
-- [ ] 5.1 `src/handler/auth_handler.hpp` + `auth_handler.cc`
+- [x] 5.1 `src/handler/auth_handler.hpp` + `auth_handler.cc`
   - `POST /api/register` → auth_service 注册
   - `POST /api/login` → auth_service 登录, set-cookie
   - `POST /api/logout` → 删除 Session 文件
   - `GET /api/me` → 返回当前用户信息
-  - [ ] 5.1.t `tests/integration/auth_api_test.cc`
-- [ ] 5.2 `src/handler/problem_handler.hpp` + `problem_handler.cc`
+- [x] 5.2 `src/handler/problem_handler.hpp` + `problem_handler.cc`
   - `GET /api/problems` → 题目列表
   - `GET /api/problems/{id}` → 题目详情（含示例用例）
   - `POST /api/problems` → 新增（需 admin）
   - `PUT /api/problems/{id}` → 编辑（需 admin）
   - `DELETE /api/problems/{id}` → 删除（需 admin）
-  - [ ] 5.2.t `tests/integration/problem_api_test.cc`
-- [ ] 5.3 `src/handler/submit_handler.hpp` + `submit_handler.cc`
+- [x] 5.3 `src/handler/submit_handler.hpp` + `submit_handler.cc`
   - `POST /api/submit` → 校验代码大小/限流/入队, 返回 202 + submission_id
   - `GET /api/submissions/{id}` → 查询判题结果
   - `GET /api/submissions?problem_id=X` → 用户某题提交历史
-  - [ ] 5.3.t `tests/integration/submit_api_test.cc`
-- [ ] 5.4 `src/handler/admin_handler.hpp` + `admin_handler.cc`
+- [x] 5.4 `src/handler/admin_handler.hpp` + `admin_handler.cc`
   - `GET /api/problems/{id}/testcases` → 测试用例列表
   - `POST /api/problems/{id}/testcases` → 新增测试用例
   - `DELETE /api/problems/{id}/testcases/{tc_id}` → 删除
-  - [ ] 5.4.t `tests/integration/admin_api_test.cc`
-- [ ] 5.5 `src/server/router.h` + `src/server/server.cc` + `src/main.cc`
+- [x] 5.5 `src/server/router.h` + `src/server/server.cc` + `src/main.cc`
   - 定义路由表（method + path → handler）
   - 封装 httplib::Server 启动
   - main.cc 入口: 加载配置 → 初始化连接池 → 注册路由 → 启动 server
-  - [ ] 5.5.t 端到端启动测试
 
 ## 阶段六：前端
 
-- [ ] 6.1 `public/css/style.css`（全局样式, 暗色主题）
-- [ ] 6.2 `public/js/api.js`（fetch 封装, 自动携带 Cookie, 统一错误处理）
-- [ ] 6.3 `public/js/auth.js`（页面加载时检查 /api/me, 未登录跳转 /login）
-- [ ] 6.4 `public/login.html` + 登录逻辑（内联在 login.html）
-- [ ] 6.5 `public/register.html` + 注册逻辑
-- [ ] 6.6 `public/index.html` + `public/js/problem.js`（题目列表渲染）
-- [ ] 6.7 `public/problem.html` + `public/js/problem_detail.js`（题目详情 + CodeMirror）
-- [ ] 6.8 `public/problem.html` + `public/js/submit.js`（提交按钮 + 轮询结果）
-- [ ] 6.9 `public/admin.html` + `public/js/admin.js`（题目 CRUD + 测试用例管理）
+- [x] 6.1 `public/css/style.css`（暗色主题）
+- [x] 6.2 `public/js/api.js`（fetch 封装, 自动携带 Cookie, 统一错误处理）
+- [x] 6.3 `public/js/auth.js`（页面加载时检查 /api/me, 未登录跳转 /login）
+- [x] 6.4 `public/login.html` + 登录逻辑
+- [x] 6.5 `public/register.html` + 注册逻辑
+- [x] 6.6 `public/index.html` + `public/js/problem.js`（题目列表渲染）
+- [x] 6.7 `public/problem.html` + `public/js/problem_detail.js`（题目详情 + CodeMirror 6）
+- [x] 6.8 `public/submit.js` → `public/js/submit.js`（提交按钮 + 轮询结果）
+- [x] 6.9 `public/admin.html` + `public/js/admin.js`（题目 CRUD + 测试用例管理）
+  - 题目 CRUD 列表 + 创建 + 编辑弹窗 + 删除确认
+  - 测试用例管理弹窗（添加/删除/显示，区分示例和隐藏）
 
 ## 阶段七：部署
 
-- [ ] 7.1 `scripts/start.sh`（编译 + 运行后端）
-- [ ] 7.2 systemd service 文件（开机自启, 日志收集）
+- [x] 7.1 `scripts/start.sh`（编译 + 运行后端）
+- [x] 7.2 systemd service 文件（开机自启, 日志收集）

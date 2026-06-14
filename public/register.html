@@ -3,16 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>登录 - OJ System</title>
+<title>注册 - OJ System</title>
 <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
 <div class="container" style="max-width:400px;margin-top:80px">
   <h1>OJ System</h1>
   <div class="card">
-    <h2>登录</h2>
-    <p id="regMsg" class="success" style="display:none">注册成功，请登录</p>
-    <form id="loginForm">
+    <h2>注册</h2>
+    <form id="registerForm">
       <div class="form-group">
         <label>用户名</label>
         <input type="text" id="username" placeholder="用户名" required style="width:100%">
@@ -21,11 +20,11 @@
         <label>密码</label>
         <input type="password" id="password" placeholder="密码" required style="width:100%">
       </div>
-      <button type="submit" style="width:100%">登录</button>
+      <button type="submit" style="width:100%">注册</button>
       <p id="error" class="error"></p>
     </form>
     <p style="margin-top:12px;text-align:center">
-      没有账号？<a href="/register.html">注册</a>
+      已有账号？<a href="/login.html">登录</a>
     </p>
   </div>
 </div>
@@ -37,23 +36,19 @@
     if (user.ok) window.location.href = '/';
 })();
 
-if (new URLSearchParams(location.search).has('registered')) {
-    document.getElementById('regMsg').style.display = 'block';
-}
-
-document.getElementById('loginForm').onsubmit = async (e) => {
+document.getElementById('registerForm').onsubmit = async (e) => {
     e.preventDefault();
     const err = document.getElementById('error');
     err.textContent = '';
     try {
-        const data = await api('/api/login', {
+        const data = await api('/api/register', {
             method: 'POST',
             body: JSON.stringify({
                 username: document.getElementById('username').value,
                 password: document.getElementById('password').value,
             }),
         });
-        window.location.href = '/';
+        window.location.href = '/login.html?registered=1';
     } catch (e) {
         err.textContent = e.message;
     }
