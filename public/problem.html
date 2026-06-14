@@ -30,8 +30,7 @@
   <div id="sampleCases" style="margin-bottom:16px"></div>
 
   <h3>代码编辑器</h3>
-  <div id="editor" style="display:none"></div>
-  <textarea id="codeFallback" style="width:100%;height:400px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:monospace;font-size:0.9rem;resize:vertical">#include <bits/stdc++.h>
+  <textarea id="codeEditor" style="width:100%;height:400px;background:var(--bg-input);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font-family:monospace;font-size:0.9rem;resize:vertical;tab-size:4;line-height:1.5">#include <bits/stdc++.h>
 using namespace std;
 
 int main() {
@@ -39,6 +38,7 @@ int main() {
     return 0;
 }
 </textarea>
+  <div id="cmEditor" style="display:none"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 16px">
     <button id="submitBtn" onclick="submitCode()" disabled>提交</button>
     <span id="charCount" style="color:var(--text-muted);font-size:0.85rem">0 / 65536</span>
@@ -56,6 +56,27 @@ int main() {
 <script src="/js/auth.js"></script>
 <script src="/js/submit.js"></script>
 <script src="/js/problem_detail.js"></script>
+<script>
+(function() {
+    const ta = document.getElementById('codeEditor');
+    ta.addEventListener('keydown', function(e) {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            const start = ta.selectionStart;
+            const end = ta.selectionEnd;
+            ta.value = ta.value.substring(0, start) + '\t' + ta.value.substring(end);
+            ta.selectionStart = ta.selectionEnd = start + 1;
+            updateCharCount();
+        }
+    });
+    ta.addEventListener('input', updateCharCount);
+    window.updateCharCount = function() {
+        const len = ta.value.length;
+        document.getElementById('charCount').textContent = len + ' / 65536 (剩余 ' + (65536 - len) + ')';
+    };
+    updateCharCount();
+})();
+</script>
 
 <script type="importmap">
 {
@@ -76,79 +97,98 @@ int main() {
   }
 }
 </script>
-<script type="module">
-import { EditorView, keymap, lineNumbers, highlightActiveLine, highlightSpecialChars, drawSelection, rectangularSelection } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { defaultHighlightStyle, syntaxHighlighting, indentOnInput, bracketMatching, foldGutter, foldKeymap, highlightActiveLineGutter } from '@codemirror/language';
-import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
-import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-import { closeBrackets, closeBracketsKeymap, autocompletion, completionKeymap } from '@codemirror/autocomplete';
-import { lintKeymap } from '@codemirror/lint';
-import { oneDark } from '@codemirror/theme-one-dark';
-import { cpp } from '@codemirror/lang-cpp';
+<script>
+async function initCodeMirror() {
+    try {
+        const [{EditorView,keymap,lineNumbers,highlightActiveLine,highlightSpecialChars,drawSelection,rectangularSelection},
+               {EditorState},
+               {defaultHighlightStyle,syntaxHighlighting,indentOnInput,bracketMatching,foldGutter,foldKeymap,highlightActiveLineGutter,indentUnit},
+               {defaultKeymap,history,historyKeymap,indentWithTab},
+               {highlightSelectionMatches,searchKeymap},
+               {closeBrackets,closeBracketsKeymap,autocompletion,completionKeymap},
+               {lintKeymap},
+               {oneDark},
+               {cppPlain}
+        ] = await Promise.all([
+            import('@codemirror/view'),
+            import('@codemirror/state'),
+            import('@codemirror/language'),
+            import('@codemirror/commands'),
+            import('@codemirror/search'),
+            import('@codemirror/autocomplete'),
+            import('@codemirror/lint'),
+            import('@codemirror/theme-one-dark'),
+            import('@codemirror/lang-cpp')
+        ]);
 
-const editorEl = document.getElementById('editor');
-const fallbackEl = document.getElementById('codeFallback');
+        const ta = document.getElementById('codeEditor');
+        const cmEl = document.getElementById('cmEditor');
+        const initialCode = ta.value;
 
-const darkTheme = EditorView.theme({
-    '&': { height: '400px', fontSize: '0.9rem' },
-    '.cm-scroller': { overflow: 'auto' },
-    '.cm-gutters': { backgroundColor: '#0f3460', color: '#888', border: 'none' },
-    '.cm-activeLineGutter': { backgroundColor: '#1a1a2e' },
-}, { dark: true });
+        const darkTheme = EditorView.theme({
+            '&': { height: '400px', fontSize: '0.9rem' },
+            '.cm-scroller': { overflow: 'auto' },
+            '.cm-gutters': { backgroundColor: '#0f3460', color: '#888', border: 'none' },
+            '.cm-activeLineGutter': { backgroundColor: '#1a1a2e' },
+        }, { dark: true });
 
-const initialCode = fallbackEl.value;
+        const state = EditorState.create({
+            doc: initialCode,
+            extensions: [
+                lineNumbers(),
+                highlightActiveLine(),
+                highlightActiveLineGutter(),
+                highlightSpecialChars(),
+                drawSelection(),
+                rectangularSelection(),
+                history(),
+                foldGutter(),
+                indentOnInput(),
+                bracketMatching(),
+                closeBrackets(),
+                autocompletion(),
+                highlightSelectionMatches(),
+                syntaxHighlighting(defaultHighlightStyle),
+                indentUnit.of('\t'),
+                oneDark,
+                darkTheme,
+                keymap.of([
+                    indentWithTab,
+                    ...closeBracketsKeymap,
+                    ...defaultKeymap,
+                    ...searchKeymap,
+                    ...historyKeymap,
+                    ...foldKeymap,
+                    ...completionKeymap,
+                    ...lintKeymap,
+                ]),
+                cppPlain(),
+                EditorView.updateListener.of(update => {
+                    if (update.docChanged) {
+                        const len = update.state.doc.length;
+                        document.getElementById('charCount').textContent =
+                            len + ' / 65536 (剩余 ' + (65536 - len) + ')';
+                    }
+                }),
+            ],
+        });
 
-const state = EditorState.create({
-    doc: initialCode,
-    extensions: [
-        lineNumbers(),
-        highlightActiveLine(),
-        highlightActiveLineGutter(),
-        highlightSpecialChars(),
-        drawSelection(),
-        rectangularSelection(),
-        history(),
-        foldGutter(),
-        indentOnInput(),
-        bracketMatching(),
-        closeBrackets(),
-        autocompletion(),
-        highlightSelectionMatches(),
-        syntaxHighlighting(defaultHighlightStyle),
-        oneDark,
-        darkTheme,
-        keymap.of([
-            ...closeBracketsKeymap,
-            ...defaultKeymap,
-            ...searchKeymap,
-            ...historyKeymap,
-            ...foldKeymap,
-            ...completionKeymap,
-            ...lintKeymap,
-        ]),
-        cpp(),
-        EditorView.updateListener.of(update => {
-            if (update.docChanged) {
-                const len = update.state.doc.length;
-                document.getElementById('charCount').textContent =
-                    len + ' / 65536 (剩余 ' + (65536 - len) + ')';
-            }
-        }),
-    ],
-});
+        const view = new EditorView({ state, parent: cmEl });
 
-const view = new EditorView({
-    state,
-    parent: editorEl,
-});
+        window.editorView = view;
+        window.cmInitialized = true;
 
-window.editorView = view;
-editorEl.style.display = '';
-fallbackEl.style.display = 'none';
+        cmEl.style.display = '';
+        ta.style.display = 'none';
 
-document.getElementById('charCount').textContent =
-    initialCode.length + ' / 65536 (剩余 ' + (65536 - initialCode.length) + ')';
+        document.getElementById('charCount').textContent =
+            initialCode.length + ' / 65536 (剩余 ' + (65536 - initialCode.length) + ')';
+    } catch (e) {
+        console.warn('CodeMirror load failed, using textarea fallback:', e.message);
+    }
+}
+
+initCodeMirror();
 </script>
 <script>
 (async () => {

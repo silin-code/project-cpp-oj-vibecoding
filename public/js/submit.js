@@ -8,10 +8,10 @@ async function submitCode() {
     }
 
     let code;
-    if (window.editorView && window.editorView.state) {
+    if (window.cmInitialized && window.editorView && window.editorView.state) {
         code = window.editorView.state.doc.toString();
     } else {
-        const ta = document.getElementById('codeFallback');
+        const ta = document.getElementById('codeEditor');
         if (ta) {
             code = ta.value;
         } else {
