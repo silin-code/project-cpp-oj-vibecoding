@@ -111,7 +111,7 @@ void ExecutorService::judge(SubmitTask task) {
     }
 
     auto& pool = ConnectionPool::instance();
-    auto* conn = pool.get();
+    auto* conn = pool.try_get(10000);
     if (!conn) {
         update_status(task.submission_id, "RE", 0, "Internal error", 0, 0);
         fs::remove_all(sandbox_dir);
@@ -157,19 +157,19 @@ void ExecutorService::judge(SubmitTask task) {
         if (mem_kb > max_mem_kb) max_mem_kb = mem_kb;
 
         if (ret == -1) {
-            update_status(task.submission_id, "RE", case_idx, run_err, time_ms, mem_kb);
+            update_status(task.submission_id, "RE", case_idx, run_err, time_ms, mem_kb, conn);
             all_passed = false;
             break;
         } else if (ret == 1) {
-            update_status(task.submission_id, "TLE", case_idx, "", time_ms, mem_kb);
+            update_status(task.submission_id, "TLE", case_idx, "", time_ms, mem_kb, conn);
             all_passed = false;
             break;
         } else if (ret == 2) {
-            update_status(task.submission_id, "MLE", case_idx, "", time_ms, mem_kb);
+            update_status(task.submission_id, "MLE", case_idx, "", time_ms, mem_kb, conn);
             all_passed = false;
             break;
         } else if (trim_output(output) != trim_output(expected)) {
-            update_status(task.submission_id, "WA", case_idx, "", time_ms, mem_kb);
+            update_status(task.submission_id, "WA", case_idx, "", time_ms, mem_kb, conn);
             all_passed = false;
             break;
         }
@@ -436,10 +436,15 @@ int ExecutorService::run_sandbox(
 
 void ExecutorService::update_status(int submission_id, const std::string& status,
                                      int failed_case, const std::string& error_msg,
-                                     int time_used, int memory_used) {
-    auto& pool = ConnectionPool::instance();
-    auto* conn = pool.get();
-    if (!conn) return;
+                                     int time_used, int memory_used,
+                                     struct MYSQL* provided_conn) {
+    MYSQL* conn = provided_conn;
+    bool need_release = false;
+    if (!conn) {
+        conn = ConnectionPool::instance().try_get(5000);
+        if (!conn) return;
+        need_release = true;
+    }
 
     std::string q = "UPDATE submissions SET status='" + status + "'";
 
@@ -467,7 +472,9 @@ void ExecutorService::update_status(int submission_id, const std::string& status
         Logger::instance().error("update_status failed: " + std::string(mysql_error(conn)));
     }
 
-    pool.release(conn);
+    if (need_release) {
+        ConnectionPool::instance().release(conn);
+    }
     Logger::instance().info("Submission " + std::to_string(submission_id) + " → " + status);
 }
 

@@ -49,6 +49,26 @@ MYSQL* ConnectionPool::get() {
     return conn;
 }
 
+MYSQL* ConnectionPool::try_get(int timeout_ms) {
+    std::unique_lock<std::mutex> lock(mtx_);
+    if (pool_.empty()) {
+        if (!cv_.wait_for(lock, std::chrono::milliseconds(timeout_ms), [this] {
+            return !pool_.empty();
+        })) {
+            return nullptr;
+        }
+    }
+    auto* conn = pool_.back();
+    pool_.pop_back();
+
+    if (mysql_ping(conn) != 0) {
+        mysql_close(conn);
+        conn = create_connection();
+    }
+
+    return conn;
+}
+
 void ConnectionPool::release(MYSQL* conn) {
     std::lock_guard<std::mutex> lock(mtx_);
     pool_.push_back(conn);

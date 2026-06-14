@@ -6,6 +6,7 @@
 #include <mutex>
 #include <condition_variable>
 #include <memory>
+#include <chrono>
 
 struct DBConfig;
 
@@ -15,6 +16,7 @@ public:
 
     bool init(const DBConfig& config);
     MYSQL* get();
+    MYSQL* try_get(int timeout_ms = 5000);
     void release(MYSQL* conn);
     void close_all();
 

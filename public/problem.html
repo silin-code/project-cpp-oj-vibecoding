@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>题目详情 - OJ System</title>
 <link rel="stylesheet" href="/css/style.css">
+<style>
+.status-bar { display:flex; gap:12px; align-items:center; padding:12px 16px; background:var(--bg-card); border-radius:var(--radius); margin:8px 0 16px; border:1px solid var(--border); }
+.status-step { display:flex; align-items:center; gap:6px; color:var(--text-muted); font-size:0.85rem; }
+.status-step.active { color:var(--accent); font-weight:600; }
+.status-step.done { color:var(--success); }
+.status-step .dot { width:8px; height:8px; border-radius:50%; background:currentColor; }
+.status-arrow { color:var(--text-muted); }
+</style>
 </head>
 <body>
 <div class="container">
@@ -38,13 +46,14 @@ int main() {
     return 0;
 }
 </textarea>
-  <div id="cmEditor" style="display:none"></div>
   <div style="display:flex;align-items:center;justify-content:space-between;margin:8px 0 16px">
-    <button id="submitBtn" onclick="submitCode()" disabled>提交</button>
+    <button id="submitBtn" onclick="submitCode()" disabled>提交代码</button>
     <span id="charCount" style="color:var(--text-muted);font-size:0.85rem">0 / 65536</span>
   </div>
 
-  <div id="result"></div>
+  <div id="statusArea"></div>
+
+  <div id="result" style="margin-top:16px"></div>
 
   <h3 style="margin-top:24px">提交历史</h3>
   <div id="submissionHistory" style="margin-bottom:32px">
@@ -54,161 +63,231 @@ int main() {
 
 <script src="/js/api.js"></script>
 <script src="/js/auth.js"></script>
-<script src="/js/submit.js"></script>
 <script src="/js/problem_detail.js"></script>
 <script>
+var currentProblemId = 0;
+
 (function() {
-    const ta = document.getElementById('codeEditor');
+    var ta = document.getElementById('codeEditor');
+    
     ta.addEventListener('keydown', function(e) {
         if (e.key === 'Tab') {
             e.preventDefault();
-            const start = ta.selectionStart;
-            const end = ta.selectionEnd;
+            var start = ta.selectionStart;
+            var end = ta.selectionEnd;
             ta.value = ta.value.substring(0, start) + '\t' + ta.value.substring(end);
             ta.selectionStart = ta.selectionEnd = start + 1;
             updateCharCount();
         }
     });
+    
     ta.addEventListener('input', updateCharCount);
-    window.updateCharCount = function() {
-        const len = ta.value.length;
+    
+    function updateCharCount() {
+        var len = ta.value.length;
         document.getElementById('charCount').textContent = len + ' / 65536 (剩余 ' + (65536 - len) + ')';
-    };
+    }
     updateCharCount();
 })();
-</script>
 
-<script type="importmap">
-{
-  "imports": {
-    "@codemirror/state": "https://esm.sh/@codemirror/state@6.5.2",
-    "@codemirror/view": "https://esm.sh/@codemirror/view@6.36.5",
-    "@codemirror/language": "https://esm.sh/@codemirror/language@6.11.0",
-    "@codemirror/commands": "https://esm.sh/@codemirror/commands@6.8.1",
-    "@codemirror/search": "https://esm.sh/@codemirror/search@6.5.10",
-    "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.18.6",
-    "@codemirror/lint": "https://esm.sh/@codemirror/lint@6.8.5",
-    "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2",
-    "@codemirror/lang-cpp": "https://esm.sh/@codemirror/lang-cpp@6.0.2",
-    "@lezer/common": "https://esm.sh/@lezer/common@1.2.3",
-    "@lezer/lr": "https://esm.sh/@lezer/lr@1.4.2",
-    "@lezer/highlight": "https://esm.sh/@lezer/highlight@1.2.1",
-    "@lezer/cpp": "https://esm.sh/@lezer/cpp@1.1.3"
-  }
+function getCode() {
+    var ta = document.getElementById('codeEditor');
+    return ta ? ta.value : '';
 }
-</script>
-<script>
-async function initCodeMirror() {
+
+function showStatus(stage) {
+    var stages = ['提交', '排队', '编译', '运行', '判题'];
+    var currentIdx = stages.indexOf(stage);
+    var html = '<div class="status-bar">';
+    for (var i = 0; i < stages.length; i++) {
+        var cls = '';
+        if (i < currentIdx) cls = ' done';
+        else if (i === currentIdx) cls = ' active';
+        html += '<span class="status-step' + cls + '"><span class="dot"></span>' + stages[i] + '</span>';
+        if (i < stages.length - 1) html += '<span class="status-arrow">→</span>';
+    }
+    html += '</div>';
+    document.getElementById('statusArea').innerHTML = html;
+}
+
+function showError(msg) {
+    document.getElementById('statusArea').innerHTML = '';
+    document.getElementById('result').innerHTML = '<div class="card" style="border-left:3px solid var(--danger)"><p class="error">' + msg + '</p></div>';
+}
+
+function showSuccess(html) {
+    document.getElementById('statusArea').innerHTML = '';
+    document.getElementById('result').innerHTML = html;
+}
+
+async function submitCode() {
+    var resultDiv = document.getElementById('result');
+    var btn = document.getElementById('submitBtn');
+    resultDiv.innerHTML = '';
+
+    if (!currentProblemId) {
+        showError('题目未加载，请刷新页面');
+        return;
+    }
+
+    var code = getCode();
+
+    if (!code.trim()) {
+        showError('代码不能为空');
+        return;
+    }
+
+    if (code.length > 65536) {
+        showError('代码过长（已 ' + code.length + ' 字符，上限 65536）');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = '提交中...';
+    showStatus('提交');
+
     try {
-        const [{EditorView,keymap,lineNumbers,highlightActiveLine,highlightSpecialChars,drawSelection,rectangularSelection},
-               {EditorState},
-               {defaultHighlightStyle,syntaxHighlighting,indentOnInput,bracketMatching,foldGutter,foldKeymap,highlightActiveLineGutter,indentUnit},
-               {defaultKeymap,history,historyKeymap,indentWithTab},
-               {highlightSelectionMatches,searchKeymap},
-               {closeBrackets,closeBracketsKeymap,autocompletion,completionKeymap},
-               {lintKeymap},
-               {oneDark},
-               {cppPlain}
-        ] = await Promise.all([
-            import('@codemirror/view'),
-            import('@codemirror/state'),
-            import('@codemirror/language'),
-            import('@codemirror/commands'),
-            import('@codemirror/search'),
-            import('@codemirror/autocomplete'),
-            import('@codemirror/lint'),
-            import('@codemirror/theme-one-dark'),
-            import('@codemirror/lang-cpp')
-        ]);
-
-        const ta = document.getElementById('codeEditor');
-        const cmEl = document.getElementById('cmEditor');
-        const initialCode = ta.value;
-
-        const darkTheme = EditorView.theme({
-            '&': { height: '400px', fontSize: '0.9rem' },
-            '.cm-scroller': { overflow: 'auto' },
-            '.cm-gutters': { backgroundColor: '#0f3460', color: '#888', border: 'none' },
-            '.cm-activeLineGutter': { backgroundColor: '#1a1a2e' },
-        }, { dark: true });
-
-        const state = EditorState.create({
-            doc: initialCode,
-            extensions: [
-                lineNumbers(),
-                highlightActiveLine(),
-                highlightActiveLineGutter(),
-                highlightSpecialChars(),
-                drawSelection(),
-                rectangularSelection(),
-                history(),
-                foldGutter(),
-                indentOnInput(),
-                bracketMatching(),
-                closeBrackets(),
-                autocompletion(),
-                highlightSelectionMatches(),
-                syntaxHighlighting(defaultHighlightStyle),
-                indentUnit.of('\t'),
-                oneDark,
-                darkTheme,
-                keymap.of([
-                    indentWithTab,
-                    ...closeBracketsKeymap,
-                    ...defaultKeymap,
-                    ...searchKeymap,
-                    ...historyKeymap,
-                    ...foldKeymap,
-                    ...completionKeymap,
-                    ...lintKeymap,
-                ]),
-                cppPlain(),
-                EditorView.updateListener.of(update => {
-                    if (update.docChanged) {
-                        const len = update.state.doc.length;
-                        document.getElementById('charCount').textContent =
-                            len + ' / 65536 (剩余 ' + (65536 - len) + ')';
-                    }
-                }),
-            ],
+        var data = await api('/api/submit', {
+            method: 'POST',
+            body: JSON.stringify({ problem_id: currentProblemId, code: code }),
         });
 
-        const view = new EditorView({ state, parent: cmEl });
+        showStatus('排队');
+        btn.textContent = '排队中...';
+        document.getElementById('result').innerHTML = '<p style="color:var(--accent)">提交成功，排队 #' + data.submission_id + ' ...</p>';
 
-        window.editorView = view;
-        window.cmInitialized = true;
-
-        cmEl.style.display = '';
-        ta.style.display = 'none';
-
-        document.getElementById('charCount').textContent =
-            initialCode.length + ' / 65536 (剩余 ' + (65536 - initialCode.length) + ')';
+        await pollResult(data.submission_id);
     } catch (e) {
-        console.warn('CodeMirror load failed, using textarea fallback:', e.message);
+        showError('提交失败: ' + e.message);
+        btn.disabled = false;
+        btn.textContent = '提交代码';
     }
 }
 
-initCodeMirror();
+async function pollResult(submissionId) {
+    var btn = document.getElementById('submitBtn');
+    var attempts = 0;
+    var maxAttempts = 120;
+
+    while (attempts < maxAttempts) {
+        attempts++;
+        try {
+            var data = await api('/api/submissions/' + submissionId);
+
+            if (data.status === 'PENDING') {
+                showStatus('排队');
+                btn.textContent = '排队中...';
+            } else if (data.status === 'JUDGING') {
+                showStatus('编译');
+                btn.textContent = '判题中...';
+            } else {
+                showStatus('判题');
+                await new Promise(function(r) { setTimeout(r, 500); });
+                renderResult(data);
+                btn.disabled = false;
+                btn.textContent = '提交代码';
+                loadSubmissionHistory(currentProblemId);
+                return;
+            }
+        } catch (e) {
+            showError('查询结果失败: ' + e.message);
+            btn.disabled = false;
+            btn.textContent = '提交代码';
+            return;
+        }
+        await new Promise(function(r) { setTimeout(r, 500); });
+    }
+
+    showError('判题超时（等待超过 60 秒）');
+    btn.disabled = false;
+    btn.textContent = '提交代码';
+}
+
+function renderResult(data) {
+    var badgeClass = 'badge-' + data.status.toLowerCase();
+    var html = '<div class="card" style="border-left:3px solid var(--accent)">';
+    html += '<h3>判题结果: <span class="badge ' + badgeClass + '">' + data.status + '</span></h3>';
+
+    if (data.status === 'AC') {
+        html += '<p class="success">通过</p>';
+    } else if (data.status === 'WA') {
+        html += '<p class="error">答案错误</p>';
+        if (data.failed_case > 0) {
+            html += '<p>未通过测试用例: #' + data.failed_case + '</p>';
+        }
+    } else if (data.status === 'CE') {
+        html += '<p class="error">编译错误</p>';
+        if (data.error_msg) {
+            html += '<pre style="background:var(--bg-input);padding:8px;border-radius:var(--radius);overflow-x:auto;white-space:pre-wrap;font-size:0.85rem">' + escapeHtml(data.error_msg) + '</pre>';
+        }
+    } else if (data.status === 'RE') {
+        html += '<p class="error">运行时错误</p>';
+        if (data.error_msg) {
+            html += '<pre style="background:var(--bg-input);padding:8px;border-radius:var(--radius);overflow-x:auto;white-space:pre-wrap;font-size:0.85rem">' + escapeHtml(data.error_msg) + '</pre>';
+        }
+    } else if (data.status === 'TLE') {
+        html += '<p class="error">运行超时</p>';
+    } else if (data.status === 'MLE') {
+        html += '<p class="error">内存超限</p>';
+    }
+
+    if (data.time_used > 0) html += '<p>耗时: ' + data.time_used + 'ms</p>';
+    if (data.memory_used > 0) html += '<p>内存: ' + (data.memory_used / 1024).toFixed(1) + 'MB</p>';
+    html += '</div>';
+
+    document.getElementById('statusArea').innerHTML = '';
+    document.getElementById('result').innerHTML = html;
+}
+
+async function loadSubmissionHistory(problemId) {
+    var div = document.getElementById('submissionHistory');
+    try {
+        var subs = await api('/api/submissions?problem_id=' + problemId);
+        if (!subs || subs.length === 0) {
+            div.innerHTML = '<p style="color:var(--text-muted)">暂无提交记录</p>';
+            return;
+        }
+        div.innerHTML = subs.map(function(s) {
+            var badgeClass = 'badge-' + s.status.toLowerCase();
+            var info = '';
+            if (s.failed_case > 0) info = ' | 失败用例: #' + s.failed_case;
+            if (s.time_used > 0) info += ' | ' + s.time_used + 'ms';
+            if (s.memory_used > 0) info += ' | ' + (s.memory_used / 1024).toFixed(1) + 'MB';
+            return '<div class="result-card" style="border-left:3px solid var(--accent)">' +
+                '<span class="badge ' + badgeClass + '">' + s.status + '</span>' +
+                '<span style="color:var(--text-muted);font-size:0.8rem;margin-left:8px">' + s.created_at + info + '</span>' +
+            '</div>';
+        }).join('');
+    } catch (e) {
+        div.innerHTML = '<p class="error">加载历史失败: ' + e.message + '</p>';
+    }
+}
+
+function escapeHtml(str) {
+    var d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+}
 </script>
 <script>
-(async () => {
-    const user = await requireAuth();
+(async function() {
+    var user = await requireAuth();
     if (!user) return;
     document.getElementById('userInfo').textContent = user.username + ' (' + user.role + ')';
 
-    document.getElementById('logoutBtn').onclick = async () => {
+    document.getElementById('logoutBtn').onclick = async function() {
         await api('/api/logout', { method: 'POST' });
         window.location.href = '/login.html';
     };
 
-    const params = new URLSearchParams(location.search);
-    const id = params.get('id');
+    var params = new URLSearchParams(location.search);
+    var id = params.get('id');
     if (!id || isNaN(id)) {
         document.getElementById('problemTitle').textContent = '题目不存在';
         return;
     }
 
-    loadProblem(parseInt(id));
+    await loadProblem(parseInt(id));
 })();
 </script>
 </body>

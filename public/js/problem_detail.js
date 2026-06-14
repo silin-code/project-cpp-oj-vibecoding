@@ -1,5 +1,3 @@
-let currentProblemId = 0;
-
 async function loadProblem(id) {
     currentProblemId = id;
     try {

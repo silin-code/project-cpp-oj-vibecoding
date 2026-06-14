@@ -8,6 +8,8 @@
 #include <vector>
 #include <atomic>
 
+struct MYSQL;
+
 struct SubmitTask {
     int submission_id;
     int problem_id;
@@ -45,7 +47,8 @@ private:
     void judge(SubmitTask task);
     void update_status(int submission_id, const std::string& status,
                        int failed_case, const std::string& error_msg,
-                       int time_used, int memory_used);
+                       int time_used, int memory_used,
+                       struct MYSQL* conn = nullptr);
 
     std::queue<SubmitTask> queue_;
     std::mutex queue_mtx_;
